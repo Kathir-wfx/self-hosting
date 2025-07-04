@@ -1,0 +1,42 @@
+<html>
+
+<head>
+    <title>WebView Content</title>
+    <script>
+        var myIp = "172.16.16.130";
+        var scripts = [
+            "src/ts/js/variables.js"
+            "src/ts/js/helperFunctions.js"
+            "src/ts/js/filterHierarchy.js"
+            "src/ts/js/finder.js"
+            "src/ts/js/observable.js"
+            "src/ts/js/listener.js"
+            "src/ts/js/webFinder.js"
+            "src/ts/js/observer/observerLogService.js"
+            "src/ts/js/user/userProfileService.js"
+            "src/ts/js/utils/globalErrorHandler.js"
+            "src/ts/js/utils/globalSchedulerService.js"
+            "src/ts/js/utils/networkService.js"
+            "src/ts/js/sdkStateService.js"
+            "src/ts/js/analytics/analytics.js"
+            "src/ts/js/analytics/surveyAnalytics.js"
+            "src/ts/js/analytics/eventCollectorService.js"
+            "src/ts/js/cache/cacheStore.js"
+            "src/ts/js/utils/enterpriseUtil.js"
+            "src/ts/js/api/apiService.js"
+            "src/ts/js/init.js"
+            "src/ts/js/index.js"
+        ];
+
+        scripts.forEach(function (script) {
+            var scriptElement = document.createElement('script');
+            scriptElement.src = `http://${myIp}:5500/${script}`;
+            document.head.appendChild(scriptElement);
+        });
+    </script>
+</head>
+
+<body>
+</body>
+
+</html>
