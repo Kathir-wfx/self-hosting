@@ -1,4 +1,4 @@
-/*! createdTime: Wed Dec 17 2025 17:01:24 GMT+0000 (Coordinated Universal Time) */
+/*! createdTime: Tue Mar 24 2026 17:27:54 GMT+0000 (Coordinated Universal Time) */
 /******/ (function() { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
@@ -140,6 +140,7 @@ var parentDeploymentVersion = "";
 var connectProjectsParentMap = {};
 var wfOrgId = "";
 var jsMetadata = {};
+var jsMetadataPollFrequency = 15;
 var activeStep = {
     id: "",
     step: {},
@@ -436,7 +437,7 @@ var selfHostingEndPoints = {
 };
 var appLocale = "";
 var forceSendObserverLogs = false;
-var jsVersionNumber = 5081;
+var jsVersionNumber = 5089;
 var userSessionId;
 var isUserLoggedIn = false;
 var defaultLanguage = "";
@@ -1154,13 +1155,15 @@ function updateViewStatusForTheProject(activeProjectId, key, traceId) {
                 removeProjectFromStatusArray({ saveState: false }, traceId);
             }
         }
-        sendObserverLogs({
-            event_name: OBSERVER_EVENTS.PROJECT.UPDATING_PROJECT_TERMINATION_STATUS,
-            category: OBSERVER_EVENT_CATEGORIES.PROJECT,
-            properties: __assign({ project_id: activeProjectId }, updated),
-            level: ObserverLogLevel.DEBUG,
-        }, traceId);
-        updateUserProfile(traceId);
+        if (updated) {
+            sendObserverLogs({
+                event_name: OBSERVER_EVENTS.PROJECT.UPDATING_PROJECT_TERMINATION_STATUS,
+                category: OBSERVER_EVENT_CATEGORIES.PROJECT,
+                properties: __assign({ project_id: activeProjectId }, updated),
+                level: ObserverLogLevel.DEBUG,
+            }, traceId);
+            updateUserProfile(traceId);
+        }
     }
 }
 function areAllProjectsCompleted(data) {
@@ -1364,6 +1367,7 @@ var sdkStateService = {
         this.entId = sdkState.entId;
         this.wfAppId = sdkState.wfAppId;
         this.wfOrgId = sdkState.wfOrgId;
+        this.profileConfig = sdkState.profileConfig;
         this.deviceInstallId = sdkState.deviceInstallId || generateUUID();
         if (isFirstStart || !this.currentUserId) {
             this.currentUserId = this.internalUserId;
@@ -1429,6 +1433,7 @@ var sdkStateService = {
             entId: this.entId,
             wfOrgId: this.wfOrgId,
             wfAppId: this.wfAppId,
+            profileConfig: this.profileConfig
         };
         if (this.isLoggedIn) {
             state[this.currentUserId] = this.currentUserState;
@@ -1562,7 +1567,7 @@ function safeParse(jsonString, fallback) {
 var screenWidth = -1;
 var screenHeight = -1;
 function filterHierarchy(node, currentPlatform, isLayout) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     if (currentPlatform === void 0) { currentPlatform = platform; }
     if (isLayout === void 0) { isLayout = false; }
     if (subPlatform === "FLUTTER") {
@@ -1594,7 +1599,7 @@ function filterHierarchy(node, currentPlatform, isLayout) {
             filterNoHideDescendants(node);
         }
         var ignoreNode = currentPlatform === PLATFORMS.ANDROID
-            ? ignoreInvalidViewsAndroid(node)
+            ? ignoreInvalidViewsAndroid(node, features)
             : ignoreInvalidViewsIOS(node);
         if (ignoreNode) {
             return;
@@ -1618,7 +1623,8 @@ function filterHierarchy(node, currentPlatform, isLayout) {
         (node === null || node === void 0 ? void 0 : node.is_view_group) &&
         !(node === null || node === void 0 ? void 0 : node.is_clickable) &&
         !(node === null || node === void 0 ? void 0 : node.is_focusable) &&
-        !(node === null || node === void 0 ? void 0 : node.is_long_clickable)) {
+        !(node === null || node === void 0 ? void 0 : node.is_long_clickable)
+        && !((node === null || node === void 0 ? void 0 : node.tag) && ((_e = (_d = features === null || features === void 0 ? void 0 : features.nonInteractiveExclusions) === null || _d === void 0 ? void 0 : _d.tags) === null || _e === void 0 ? void 0 : _e.includes(node === null || node === void 0 ? void 0 : node.tag)))) {
         return;
     }
     isRoot
@@ -1776,8 +1782,9 @@ function ignoreInvalidViewsIOS(node) {
         return true;
     return false;
 }
-function ignoreInvalidViewsAndroid(node) {
-    var _a, _b, _c, _d;
+function ignoreInvalidViewsAndroid(node, appFeatures) {
+    var _a, _b, _c, _d, _e, _f;
+    if (appFeatures === void 0) { appFeatures = {}; }
     if (!(metaConfigs === null || metaConfigs === void 0 ? void 0 : metaConfigs.enableHorizontalAutoScroll) && (((_a = node === null || node === void 0 ? void 0 : node.bounds) === null || _a === void 0 ? void 0 : _a.right) <= 5 || ((_b = node === null || node === void 0 ? void 0 : node.bounds) === null || _b === void 0 ? void 0 : _b.left) >= screenWidth)) {
         return true;
     }
@@ -1796,8 +1803,9 @@ function ignoreInvalidViewsAndroid(node) {
         (node === null || node === void 0 ? void 0 : node.is_view_group) &&
         !(node === null || node === void 0 ? void 0 : node.is_clickable) &&
         !(node === null || node === void 0 ? void 0 : node.is_focusable) &&
-        !(node === null || node === void 0 ? void 0 : node.is_long_clickable))
-        return true;
+        !(node === null || node === void 0 ? void 0 : node.is_long_clickable)) {
+        return !((node === null || node === void 0 ? void 0 : node.tag) && ((_f = (_e = appFeatures === null || appFeatures === void 0 ? void 0 : appFeatures.nonInteractiveExclusions) === null || _e === void 0 ? void 0 : _e.tags) === null || _f === void 0 ? void 0 : _f.includes(node === null || node === void 0 ? void 0 : node.tag)));
+    }
     return false;
 }
 function ignoreOverlappingNodesIOS(nodes) {
@@ -2308,7 +2316,7 @@ function findMatches(filteredHierarchy, identifiers, traceId) {
                 target === null || target === void 0 ? true : delete target.relationship;
                 target === null || target === void 0 ? true : delete target.regex;
                 var isMatch = true;
-                if (Object.keys(target).length > 1) {
+                if (Object.keys(target).length > 0) {
                     for (var key in target) {
                         if ((targetRegex === null || targetRegex === void 0 ? void 0 : targetRegex[key]) !== undefined) {
                             var regexValue = parseRegexString(targetRegex === null || targetRegex === void 0 ? void 0 : targetRegex[key]);
@@ -2463,7 +2471,7 @@ function init(traceId) {
                 projectArrayLog: buildProjectArrayLogsForObserver(sortedProjectArray),
                 hierarchyIntervalTime: getHierarchyIntervalTime(),
             },
-            level: ObserverLogLevel.INFO
+            level: ObserverLogLevel.DEBUG
         }, traceId);
         timer = setInterval(function () {
             try {
@@ -3436,6 +3444,14 @@ function renderProject(projectFound, showOnlyFlowIcon, traceId) {
     }
     delayTimer = setTimeout(function () { return sendMessageToNative(bodyObj, traceId); }, ((_h = allProjectStatus[projectFound.id]) === null || _h === void 0 ? void 0 : _h.isShown) ? 0 : projectFound === null || projectFound === void 0 ? void 0 : projectFound.triggerDelay);
 }
+function projectHasAppLocale(project) {
+    var _a;
+    if (!appLocale) {
+        return true;
+    }
+    var index = (_a = project === null || project === void 0 ? void 0 : project.languages) === null || _a === void 0 ? void 0 : _a.findIndex(function (lang) { return lang.localeId === appLocale; });
+    return (index !== undefined && index !== -1);
+}
 function runDetectionLogicForProjects(searchOnlyFlowMenu, webIdentifiers, traceId) {
     var _a;
     if (searchOnlyFlowMenu === void 0) { searchOnlyFlowMenu = false; }
@@ -3452,6 +3468,9 @@ function runDetectionLogicForProjects(searchOnlyFlowMenu, webIdentifiers, traceI
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29;
         if (project === undefined)
             return;
+        if (!projectHasAppLocale(project)) {
+            return false;
+        }
         if ([
             'FEEDBACK_BOTTOM_SHEET',
             'FEEDBACK_FULLSCREEN',
@@ -3755,9 +3774,20 @@ function runDetectionLogicForSteps(_a, webIdentifiers, traceId) {
     });
     return stepFound;
 }
+function hasAnchorNode(assistType) {
+    return ["TOOLTIP",
+        "HIGHLIGHT_WITH_DESC",
+        "BEACON",
+        "FINGER_RIPPLE",
+        "SWIPE_LEFT",
+        "SWIPE_RIGHT",
+        "SWIPE_UP",
+        "SWIPE_DOWN",
+    ].includes(assistType);
+}
 function getAnchorNodeInfo(assistType, targetIdentifierId, projectFound, matchedNode, traceId) {
     var _a;
-    if (!["TOOLTIP", "HIGHLIGHT_WITH_DESC"].includes(assistType))
+    if (!hasAnchorNode(assistType))
         return null;
     var anchorNode = matchedNode.find(function (node) { return (node === null || node === void 0 ? void 0 : node.id) === targetIdentifierId; });
     var bounds = anchorNode === null || anchorNode === void 0 ? void 0 : anchorNode["bounds"];
@@ -3803,8 +3833,8 @@ function getScrollToViewScript(assistType, anchorNode, targetIdentifier) {
         "BEACON",
     ].includes(assistType))
         return null;
-    var querySelectorAllStatement = createQuerySelectorAllStatement(targetIdentifier);
-    return "\n  (function(){\n  try{\n  let wfx_scrollElement = ".concat(querySelectorAllStatement, ";\n  if(wfx_scrollElement){\n      const position = wfx_scrollElement.getBoundingClientRect();\n      let screenWidth = (window?.innerWidth || document?.documentElement?.clientWidth || document?.body?.clientWidth || 0) ;\n      let screenHeight =(window?.innerHeight || document?.documentElement?.clientHeight || document?.body?.clientHeight || 0);\n      screenHeight = screenHeight - (screenHeight * ").concat(webviewScrollThresholds.HEIGHT, ");\n      screenWidth = screenWidth - (screenWidth * ").concat(webviewScrollThresholds.WIDTH, ");\n      if(position.bottom > screenHeight\n       || position.top < ").concat(webviewScrollThresholds.TOP, "\n        || position.left < ").concat(webviewScrollThresholds.LEFT, " || \n        position.right > screenWidth){\n        wfx_scrollElement.scrollIntoView({ behavior: 'smooth', block: 'center',inline: \"center\" });\n      }else if(typeof wfx_scrollElement.scrollIntoViewIfNeeded === 'function'){\n        wfx_scrollElement.scrollIntoViewIfNeeded(true);\n      }\n  }\n  }catch(e){\n    console.error(e);\n  }\n  })()\n  ");
+    var querySelectorAllStatement = createQuerySelectorAllStatement(targetIdentifier, "wfx_scrollElement");
+    return "\n  (function(){\n  try{\n  ".concat(querySelectorAllStatement, "\n  if(wfx_scrollElement){\n      const position = wfx_scrollElement.getBoundingClientRect();\n      let screenWidth = (window?.innerWidth || document?.documentElement?.clientWidth || document?.body?.clientWidth || 0) ;\n      let screenHeight =(window?.innerHeight || document?.documentElement?.clientHeight || document?.body?.clientHeight || 0);\n      screenHeight = screenHeight - (screenHeight * ").concat(webviewScrollThresholds.HEIGHT, ");\n      screenWidth = screenWidth - (screenWidth * ").concat(webviewScrollThresholds.WIDTH, ");\n      if(position.bottom > screenHeight\n       || position.top < ").concat(webviewScrollThresholds.TOP, "\n        || position.left < ").concat(webviewScrollThresholds.LEFT, " || \n        position.right > screenWidth){\n        wfx_scrollElement.scrollIntoView({ behavior: 'smooth', block: 'center',inline: \"center\" });\n      }else if(typeof wfx_scrollElement.scrollIntoViewIfNeeded === 'function'){\n        wfx_scrollElement.scrollIntoViewIfNeeded(true);\n      }\n  }\n  }catch(e){\n    console.error(e);\n  }\n  })()\n  ");
 }
 function shouldAutoScroll2D(assistType, node, nodeBounds, parentNodes) {
     var _a, _b, _c, _d;
@@ -3994,7 +4024,7 @@ function receiveWebIdentifiers(webIdentifiers, traceId) {
     receiveScreenHierarchy(undefined, true, webIdentifiers, traceId);
 }
 function updateAssistInteraction(res, traceId) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e, _f, _g;
     var actionCallback = res.body;
     function isRunningFlowPartOfChecklist(projectId) {
         return connectProjectsParentMap === null || connectProjectsParentMap === void 0 ? void 0 : connectProjectsParentMap[projectId];
@@ -4055,6 +4085,20 @@ function updateAssistInteraction(res, traceId) {
             actionCallback.actionType === "optOutClick" ||
             actionCallback.actionType === "timeDone" ||
             actionCallback.actionType === "timerDone")) {
+        if (["TOOLTIP", "HIGHLIGHT_WITH_DESC"].includes(activeProject === null || activeProject === void 0 ? void 0 : activeProject.projectType) &&
+            actionCallback.actionType === "overlayClicked") {
+            var projectDetails = embedProject.concat(sortedProjectArray).find(function (project) {
+                return project.id === (activeProject === null || activeProject === void 0 ? void 0 : activeProject.id);
+            });
+            if (projectDetails) {
+                var dismissableOnOverlayClick = !!((_e = (_d = (_c = (_b = (_a = projectDetails === null || projectDetails === void 0 ? void 0 : projectDetails.assist) === null || _a === void 0 ? void 0 : _a.instruction) === null || _b === void 0 ? void 0 : _b.assistInfo) === null || _c === void 0 ? void 0 : _c.layoutInfo) === null || _d === void 0 ? void 0 : _d.dismissAction) === null || _e === void 0 ? void 0 : _e.outsideDismiss);
+                if (dismissableOnOverlayClick) {
+                    sendMessageToNative({
+                        command: SENDING_COMMANDS.NO_CONTEXT_FOUND,
+                    }, traceId);
+                }
+            }
+        }
         sendAnalyticEvent(ANALYTICS_EVENTS.ELEMENT_ACTION, {
             actionEventType: ACTION_EVENT_TYPES.CLOSE,
             actionEventValue: actionCallback === null || actionCallback === void 0 ? void 0 : actionCallback.actionType
@@ -4066,14 +4110,14 @@ function updateAssistInteraction(res, traceId) {
             actionEventValue: actionCallback.buttonLabel,
         }, traceId);
     }
-    if (((_a = allProjectStatus === null || allProjectStatus === void 0 ? void 0 : allProjectStatus[activeProject.id]) === null || _a === void 0 ? void 0 : _a.triggerCase) === "PLAY_ONCE")
+    if (((_f = allProjectStatus === null || allProjectStatus === void 0 ? void 0 : allProjectStatus[activeProject.id]) === null || _f === void 0 ? void 0 : _f.triggerCase) === "PLAY_ONCE")
         updateProjectStatus({ id: activeProject.id, isFlowTriggered: true }, traceId);
     if (actionCallback.close &&
         !actionCallback.optIn &&
         currentlyRunningFlow.id === "" &&
         currentStaticFlow.status === "START") {
         sendAnalyticEvent(ANALYTICS_EVENTS.FLOW_OPT_OUT, undefined, traceId);
-        if (((_b = allProjectStatus === null || allProjectStatus === void 0 ? void 0 : allProjectStatus[activeProject.id]) === null || _b === void 0 ? void 0 : _b.triggerCase) === "EVERY_SESSION_UNTIL_DISMISSED")
+        if (((_g = allProjectStatus === null || allProjectStatus === void 0 ? void 0 : allProjectStatus[activeProject.id]) === null || _g === void 0 ? void 0 : _g.triggerCase) === "EVERY_SESSION_UNTIL_DISMISSED")
             updateProjectStatus({ id: activeProject.id, isFlowTriggered: true }, traceId);
         updateViewStatusForTheProject(activeProject.id, "nDismissedByUser", traceId);
     }
@@ -4089,12 +4133,6 @@ function updateAssistInteraction(res, traceId) {
                 isFlowTriggered: true,
             }, traceId);
         updateViewStatusForTheProject(currentlyRunningFlow.id, "nDismissedByUser", traceId);
-    }
-    if (actionCallback.close &&
-        !actionCallback.optIn &&
-        currentlyRunningFlow.id !== activeProject.id &&
-        currentStaticFlow.id !== activeProject.id) {
-        updateViewStatusForTheProject(activeProject.id, "nDismissedByUser", traceId);
     }
     if (currentStaticFlow.id !== undefined &&
         currentStaticFlow.stepsStatus.length > 0) {
@@ -4324,15 +4362,15 @@ function createFinderJavascript(webIdentifiers, webViewBounds, webViewScale, web
     return webIdentificationJavascriptFunction;
 }
 function createIfElseStatement(id, webIdentifier, webViewBounds, webViewScale, webviewUUID) {
-    var querySelectorAllStatement = createQuerySelectorAllStatement(webIdentifier);
+    var querySelectorAllStatement = createQuerySelectorAllStatement(webIdentifier, "wfx_assist_ele");
     var condition = "wfx_assist_ele";
     if (webIdentifier["innerText"] && typeof webIdentifier["innerText"]["ang"] === "string") {
         var expectedText = webIdentifier["innerText"]["ang"].replace(/"/g, '\\"');
         condition += " && wfx_assist_ele.innerText === \"".concat(expectedText, "\"");
     }
-    return "\n    var wfx_assist_ele = ".concat(querySelectorAllStatement, ";\n    if (").concat(condition, ") {\n      let position = wfx_assist_ele.getBoundingClientRect();\n      if(position.width===0 && position.height===0){\n        unMatchedIdentifiers.push(\"").concat(id, "\");\n      }else{\n      matchedIdentifiers.push(\"").concat(id, "\");\n      let bounds = {\n        left: position.left * ").concat(webViewScale, " + ").concat(webViewBounds.left, ",\n        top: position.top * ").concat(webViewScale, " + ").concat(webViewBounds.top, ",\n        right: position.right * ").concat(webViewScale, " + ").concat(webViewBounds.left, ",\n        bottom: position.bottom * ").concat(webViewScale, " + ").concat(webViewBounds.top, "\n      };\n      matchedNode.push({ \n        id: \"").concat(id, "\", \n        bounds: bounds,\n        node: {\n          uuid: \"").concat(webviewUUID, "\"\n        }\n      });\n      }   \n    } else {\n      unMatchedIdentifiers.push(\"").concat(id, "\");\n    }\n  ");
+    return "\n    ".concat(querySelectorAllStatement, "\n    if (").concat(condition, ") {\n      let position = wfx_assist_ele.getBoundingClientRect();\n      if(position.width===0 && position.height===0){\n        unMatchedIdentifiers.push(\"").concat(id, "\");\n      }else{\n      matchedIdentifiers.push(\"").concat(id, "\");\n      let bounds = {\n        left: position.left * ").concat(webViewScale, " + ").concat(webViewBounds.left, ",\n        top: position.top * ").concat(webViewScale, " + ").concat(webViewBounds.top, ",\n        right: position.right * ").concat(webViewScale, " + ").concat(webViewBounds.left, ",\n        bottom: position.bottom * ").concat(webViewScale, " + ").concat(webViewBounds.top, "\n      };\n      matchedNode.push({ \n        id: \"").concat(id, "\", \n        bounds: bounds,\n        node: {\n          uuid: \"").concat(webviewUUID, "\"\n        }\n      });\n      }   \n    } else {\n      unMatchedIdentifiers.push(\"").concat(id, "\");\n    }\n  ");
 }
-function createQuerySelectorAllStatement(webIdentifier) {
+function createQuerySelectorAllStatement(webIdentifier, elementVariable) {
     var queryStatement = '';
     if (webIdentifier.customSelector) {
         webIdentifier.customSelector.split("<=").forEach(function (selector) {
@@ -4354,6 +4392,9 @@ function createQuerySelectorAllStatement(webIdentifier) {
     var index = webIdentifier.index;
     if (index && index < 0) {
         index = 0;
+    }
+    if ((features === null || features === void 0 ? void 0 : features.webviewFilterInvisibleElements) === true) {
+        return "\n        let ".concat(elementVariable, " = document.querySelectorAll(").concat(JSON.stringify(cssSelector), ");\n          let isElementVisible = (element)=>{\n             if (!element){\n              return false;\n             }\n             const rects = element.getClientRects();\n             if(!rects || rects.length === 0) {\n                return false;\n             }\n           const rect = rects[0];\n           return rect?.width > 0 && rect?.height > 0;\n          }\n       ").concat(elementVariable, " = Array.from(").concat(elementVariable, ").filter(isElementVisible)[").concat(index, "]\n  ");
     }
     return "document.querySelectorAll(".concat(JSON.stringify(cssSelector), ")[").concat(index, "]");
 }
@@ -4443,7 +4484,12 @@ function start(_a, traceId) {
                         level: ObserverLogLevel.INFO,
                     }, traceId);
                     if (!!isSelfHosted) return [3, 2];
-                    return [4, setEnterpriseId()];
+                    sendObserverLogs({
+                        event_name: OBSERVER_EVENTS.NETWORK.STARTED_POLLING_JS_METADATA,
+                        category: OBSERVER_EVENT_CATEGORIES.NETWORK,
+                        level: ObserverLogLevel.DEBUG,
+                    }, traceId);
+                    return [4, startPollingJSMetadata()];
                 case 1:
                     _k.sent();
                     _k.label = 2;
@@ -4749,7 +4795,7 @@ function fetchConfig(_a, traceId) {
                 });
             }
         }
-        var status, config, headers, requestBody, dataString, wfxProfileBody, savedUserState, allUserProperties, customPropsDateObjects_1, keys, dateObjects, lastUpdatedAt, sanitizedHeadersForObserver, sanitizedWfxProfileForObserver, response, error_3, _w, _x, wfxProfileProperties, error_4;
+        var status, config, headers, requestBody, dataString, wfxProfileBody, savedUserState, allUserProperties, customPropsDateObjects_1, keys, dateObjects, lastUpdatedAt, sanitizedHeadersForObserver, sanitizedWfxProfileForObserver, entId, appId, configFetchURL, response, error_3, _w, _x, wfxProfileProperties, error_4;
         return __generator(this, function (_y) {
             switch (_y.label) {
                 case 0:
@@ -4826,24 +4872,30 @@ function fetchConfig(_a, traceId) {
                     sanitizedWfxProfileForObserver = __assign({}, wfxProfileBody);
                     delete sanitizedHeadersForObserver["x-jiny-client-id"];
                     delete sanitizedWfxProfileForObserver["id"];
+                    entId = jsMetadata.entId || sdkStateService.entId;
+                    appId = jsMetadata.appId || sdkStateService.wfAppId;
+                    configFetchURL = "".concat(configBaseUrl, "odin/api/v1/config/fetch");
+                    if (entId && appId && appVersionName && jsVersionNumber) {
+                        configFetchURL = "".concat(configBaseUrl, "odin/api/v1/ents/").concat(entId, "/apps/").concat(appId, "/app-versions/").concat(appVersionName, "/js-versions/").concat(jsVersionNumber, "/config/fetch");
+                    }
                     sendObserverLogs({
                         category: OBSERVER_EVENT_CATEGORIES.NETWORK,
                         event_name: OBSERVER_EVENTS.NETWORK.CONFIG_FETCH_STARTED,
                         properties: ((_b = loggerConfig === null || loggerConfig === void 0 ? void 0 : loggerConfig.log_types) === null || _b === void 0 ? void 0 : _b.includes(ObserverLogLevel.DEBUG))
                             ? {
-                                url: "".concat(configBaseUrl, "odin/api/v1/config/fetch"),
+                                url: configFetchURL,
                                 source: source,
                                 headers: sanitizedHeadersForObserver,
                                 requestBody: __assign(__assign({}, requestBody), { wfxProfile: sanitizedWfxProfileForObserver }),
                             }
                             : {},
-                        level: ObserverLogLevel.INFO,
+                        level: ObserverLogLevel.DEBUG,
                     }, traceId);
                     response = void 0;
                     _y.label = 4;
                 case 4:
                     _y.trys.push([4, 6, , 7]);
-                    return [4, fetch("".concat(configBaseUrl, "odin/api/v1/config/fetch"), {
+                    return [4, fetch(configFetchURL, {
                             method: "POST",
                             headers: headers,
                             body: dataString,
@@ -5055,7 +5107,7 @@ function updateUserProfile(traceId) {
             userId: userId,
             level: ObserverLogLevel.DEBUG,
         }, traceId);
-        userProfileService.enqueueUpdate(userId, traceId);
+        userProfileService.debouncedEnqueueUpdate(userId, traceId);
     }
     catch (error) {
         console.error("updateUserProfile(): unable to enqueue profile update", error);
@@ -5601,6 +5653,8 @@ var eventCollectorService = {
         this.maxBatchSize = maxBatchSize;
         this.batchWaitTime = batchWaitTime;
         this.eventRequestQueue = [];
+        this.eventRequestQueueIds = new Set();
+        this.uploadingEventIds = new Set();
         this.isUploading = false;
         this.batchTimer = null;
         this.maxQueueSize = 100;
@@ -5608,13 +5662,84 @@ var eventCollectorService = {
         this.persistedEventSyncInProgress = false;
         console.log("eventCollectorService.constructor(): initialised successfully.");
     },
+    getEventId: function (event) {
+        var _a;
+        return (_a = event === null || event === void 0 ? void 0 : event.properties) === null || _a === void 0 ? void 0 : _a.wf_event_id;
+    },
+    pushEventsToQueue: function (events) {
+        var _this = this;
+        if (events === void 0) { events = []; }
+        if (!events || !events.length)
+            return;
+        events.forEach(function (event) {
+            var eventId = _this.getEventId(event);
+            if (eventId && !_this.eventRequestQueueIds.has(eventId) && !_this.uploadingEventIds.has(eventId)) {
+                _this.eventRequestQueueIds.add(eventId);
+                _this.eventRequestQueue.push(event);
+            }
+        });
+    },
+    unShiftEventsToQueue: function (events) {
+        var _a;
+        var _this = this;
+        if (events === void 0) { events = []; }
+        if (!events || !events.length)
+            return;
+        var eventsToUnshift = [];
+        events.forEach(function (event) {
+            var eventId = _this.getEventId(event);
+            if (eventId && !_this.eventRequestQueueIds.has(eventId) && !_this.uploadingEventIds.has(eventId)) {
+                _this.eventRequestQueueIds.add(eventId);
+                eventsToUnshift.push(event);
+            }
+        });
+        (_a = this.eventRequestQueue).unshift.apply(_a, __spreadArray([], __read(eventsToUnshift), false));
+    },
+    clearEventsQueue: function () {
+        this.eventRequestQueue = [];
+        this.eventRequestQueueIds.clear();
+    },
+    spliceEventsFromQueue: function (start, end) {
+        var _this = this;
+        var batch = this.eventRequestQueue.splice(start, end);
+        batch.forEach(function (event) {
+            var eventId = _this.getEventId(event);
+            if (eventId) {
+                _this.eventRequestQueueIds.delete(eventId);
+            }
+        });
+        return batch;
+    },
+    addToUploadingEventIds: function (events) {
+        var _this = this;
+        if (events === void 0) { events = []; }
+        if (!events || !events.length)
+            return;
+        events.forEach(function (event) {
+            var eventId = _this.getEventId(event);
+            if (eventId) {
+                _this.uploadingEventIds.add(eventId);
+            }
+        });
+    },
+    removeFromUploadingEventIds: function (events) {
+        var _this = this;
+        if (events === void 0) { events = []; }
+        if (!events || !events.length)
+            return;
+        events.forEach(function (event) {
+            var eventId = _this.getEventId(event);
+            if (eventId) {
+                _this.uploadingEventIds.delete(eventId);
+            }
+        });
+    },
     enqueueEventRequests: function (eventRequests, traceId) {
         if (eventRequests === void 0) { eventRequests = []; }
         return __awaiter(this, void 0, void 0, function () {
             var availableSpace, eventsPendingToBeAdded;
-            var _a;
             var _this = this;
-            return __generator(this, function (_b) {
+            return __generator(this, function (_a) {
                 if (isSelfHosted || inPreviewMode)
                     return [2];
                 if (!eventRequests.length)
@@ -5625,7 +5750,7 @@ var eventCollectorService = {
                     return [2];
                 }
                 eventsPendingToBeAdded = eventRequests.slice(0, availableSpace);
-                (_a = this.eventRequestQueue).push.apply(_a, __spreadArray([], __read(eventsPendingToBeAdded), false));
+                this.pushEventsToQueue(eventsPendingToBeAdded);
                 this.cacheEventQueue();
                 if (!this.batchTimer) {
                     this.batchTimer = setTimeout(function () {
@@ -5639,43 +5764,44 @@ var eventCollectorService = {
     },
     uploadNextBatch: function (traceId) {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, batch, responseUploadedStatus, error_7;
-            var _b;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
+            var batch, error_7;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
                     case 0:
-                        _a = this.isUploading;
-                        if (_a) return [3, 2];
-                        return [4, this.cannotMakeApiCall()];
-                    case 1:
-                        _a = (_c.sent());
-                        _c.label = 2;
-                    case 2:
-                        if (_a || !this.eventRequestQueue.length) {
+                        if (this.isUploading || !this.eventRequestQueue.length) {
                             return [2];
                         }
                         this.isUploading = true;
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 4, 5, 6]);
+                        return [4, this.cannotMakeApiCall()];
+                    case 2:
+                        if (_a.sent()) {
+                            return [2];
+                        }
                         console.log("eventCollectorService.uploadNextBatch(): Uploading next batch of events. Queue size: ".concat(this.eventRequestQueue.length));
-                        batch = this.eventRequestQueue.splice(0, this.maxBatchSize);
+                        batch = this.spliceEventsFromQueue(0, this.maxBatchSize);
                         this.addUploadMetadataToEventPayload(batch);
-                        _c.label = 3;
-                    case 3:
-                        _c.trys.push([3, 5, 6, 7]);
+                        this.addToUploadingEventIds(batch);
                         return [4, this.uploadEvents(batch)];
+                    case 3:
+                        _a.sent();
+                        this.removeFromUploadingEventIds(batch);
+                        return [3, 6];
                     case 4:
-                        responseUploadedStatus = _c.sent();
-                        if (responseUploadedStatus)
-                            this.cacheEventQueue();
-                        return [3, 7];
-                    case 5:
-                        error_7 = _c.sent();
+                        error_7 = _a.sent();
                         console.error("[".concat(traceId, "]Error uploading events"), error_7);
-                        (_b = this.eventRequestQueue).unshift.apply(_b, __spreadArray([], __read(batch), false));
-                        return [3, 7];
-                    case 6:
+                        if (batch) {
+                            this.removeFromUploadingEventIds(batch);
+                            this.unShiftEventsToQueue(batch);
+                        }
+                        return [3, 6];
+                    case 5:
+                        this.cacheEventQueue();
                         this.isUploading = false;
                         return [7];
-                    case 7: return [2];
+                    case 6: return [2];
                 }
             });
         });
@@ -5710,7 +5836,6 @@ var eventCollectorService = {
     },
     cacheEventQueue: function () {
         this.getCache().save(EVENTS_PREFERENCES, this.eventRequestQueue);
-        console.debug("eventCollectorService.persistEvents(): cached events and size", JSON.stringify(this.eventRequestQueue), this.eventRequestQueue.size);
     },
     fetchCachedEvents: function () {
         return __awaiter(this, void 0, void 0, function () {
@@ -5742,10 +5867,10 @@ var eventCollectorService = {
                 try {
                     this.persistedEventSyncInProgress = true;
                     parsedPersistedEvents = JSON.parse(persistedEvents);
-                    console.log("eventCollectorService.handlePersistedEvents(".concat(persistedEvents, ")"));
                     if (!Array.isArray(parsedPersistedEvents)) {
                         console.warn("eventCollectorService.handlePersistedEvents(): Invalid persisted events data, expected an array.");
                         this.clearCache();
+                        this.clearEventsQueue();
                         sendObserverLogs({
                             category: OBSERVER_EVENT_CATEGORIES.ERROR,
                             event_name: OBSERVER_EVENTS.ERROR.SAVED_ANALYTICS_EVENTS_PARSING_ERROR,
@@ -6081,7 +6206,7 @@ function receiveDataFromNativeLayer(message) {
                             type: (_c = activeStep === null || activeStep === void 0 ? void 0 : activeStep.step) === null || _c === void 0 ? void 0 : _c.assistType,
                         }
                     } : {})),
-                    level: ObserverLogLevel.INFO,
+                    level: ObserverLogLevel.DEBUG,
                 }, traceId);
                 updateProjectStatus({ id: activeProject.id, isShown: true }, traceId);
                 updateViewStatusForTheProject(activeProject.id, "nSession", traceId);
@@ -6766,10 +6891,34 @@ var userProfileService = {
     init: function () {
         this.userIds = new Queue();
         this.inProgress = new Set();
+        this.debounceTimerId = null;
+        this.debouncedUserId = null;
     },
     enqueueUpdate: function (userId, traceId) {
         this.userIds.enqueue({ userId: userId, traceId: traceId });
         this.startUserUpdateIfNeeded(userId, traceId);
+    },
+    debouncedEnqueueUpdate: function (userId, traceId) {
+        var _this = this;
+        var _a, _b;
+        if (this.debounceTimerId && this.debouncedUserId !== userId) {
+            clearTimeout(this.debounceTimerId);
+            this.debounceTimerId = null;
+            if (this.debouncedUserId) {
+                this.enqueueUpdate(this.debouncedUserId, traceId);
+            }
+            this.debouncedUserId = null;
+        }
+        var debounceDelay = ((_a = jsMetadata === null || jsMetadata === void 0 ? void 0 : jsMetadata.profile) === null || _a === void 0 ? void 0 : _a.delay) || ((_b = sdkStateService === null || sdkStateService === void 0 ? void 0 : sdkStateService.profileConfig) === null || _b === void 0 ? void 0 : _b.delay) || 0;
+        if (this.debounceTimerId) {
+            clearTimeout(this.debounceTimerId);
+        }
+        this.debouncedUserId = userId;
+        this.debounceTimerId = setTimeout(function () {
+            _this.debounceTimerId = null;
+            _this.debouncedUserId = null;
+            _this.enqueueUpdate(userId, traceId);
+        }, debounceDelay * 1000);
     },
     startUserUpdateIfNeeded: function (userId) {
         if (!this.inProgress.has(userId)) {
@@ -6879,7 +7028,7 @@ var userProfileService = {
     },
     tryUpload: function (userId, requestBody, traceId) {
         return __awaiter(this, void 0, void 0, function () {
-            var requestBodyString, response, responseText, error_11;
+            var requestBodyString, entId, appId, profileURL, response, responseText, error_11;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -6891,7 +7040,13 @@ var userProfileService = {
                             userId: userId,
                             level: ObserverLogLevel.DEBUG,
                         }, traceId);
-                        return [4, fetch("".concat(configBaseUrl, "odin/api/v1/profile"), {
+                        entId = jsMetadata.entId || sdkStateService.entId;
+                        appId = jsMetadata.appId || sdkStateService.wfAppId;
+                        profileURL = "".concat(configBaseUrl, "odin/api/v1/profile");
+                        if (entId && appId && appVersionName && jsVersionNumber) {
+                            profileURL = "".concat(configBaseUrl, "odin/api/v1/ents/").concat(entId, "/apps/").concat(appId, "/app-versions/").concat(appVersionName, "/js-versions/").concat(jsVersionNumber, "/profile");
+                        }
+                        return [4, fetch(profileURL, {
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
@@ -6929,7 +7084,7 @@ var userProfileService = {
                                 error: error_11,
                             },
                             userId: userId,
-                            level: ObserverLogLevel.ERROR,
+                            level: ObserverLogLevel.DEBUG,
                         }, traceId);
                         return [3, 4];
                     case 4: return [2, false];
@@ -6944,6 +7099,13 @@ var userProfileService = {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
+                        if (this.debounceTimerId && this.debouncedUserId) {
+                            clearTimeout(this.debounceTimerId);
+                            this.debounceTimerId = null;
+                            this.userIds.enqueue({ userId: this.debouncedUserId, traceId: traceId });
+                            this.startUserUpdateIfNeeded(this.debouncedUserId, traceId);
+                            this.debouncedUserId = null;
+                        }
                         userIds = sdkStateService.allUserIds;
                         _b.label = 1;
                     case 1:
@@ -7160,25 +7322,52 @@ var networkService = {
     }
 };
 networkService.init();
+function startPollingJSMetadata() {
+    var _a;
+    return __awaiter(this, void 0, void 0, function () {
+        var isDeviceOnline;
+        var _this = this;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0: return [4, networkService.isReallyOnline()];
+                case 1:
+                    isDeviceOnline = _b.sent();
+                    if (!isDeviceOnline) return [3, 3];
+                    return [4, setEnterpriseId()];
+                case 2:
+                    _b.sent();
+                    jsMetadataPollFrequency = ((_a = jsMetadata === null || jsMetadata === void 0 ? void 0 : jsMetadata.pollFrequency) === null || _a === void 0 ? void 0 : _a.jsMetadata) || jsMetadataPollFrequency;
+                    _b.label = 3;
+                case 3:
+                    setTimeout(function () { return __awaiter(_this, void 0, void 0, function () {
+                        return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0: return [4, startPollingJSMetadata()];
+                                case 1:
+                                    _a.sent();
+                                    return [2];
+                            }
+                        });
+                    }); }, jsMetadataPollFrequency * 1000);
+                    return [2];
+            }
+        });
+    });
+}
 function setEnterpriseId() {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0:
-                    if (!(sdkStateService.entId && sdkStateService.wfAppId && sdkStateService.wfOrgId)) return [3, 1];
-                    enterpriseId = sdkStateService.entId;
-                    wfAppId = sdkStateService.wfAppId;
-                    wfOrgId = sdkStateService.wfOrgId;
-                    return [3, 3];
-                case 1: return [4, fetchAndSetEnterpriseId()];
-                case 2:
+                case 0: return [4, fetchAndSetEnterpriseId()];
+                case 1:
                     enterpriseId = _a.sent();
-                    sdkStateService.entId = enterpriseId;
-                    sdkStateService.wfAppId = wfAppId;
-                    sdkStateService.wfOrgId = wfOrgId;
-                    _a.label = 3;
-                case 3:
-                    sdkStateService.persistState(generateUUID());
+                    if (enterpriseId) {
+                        sdkStateService.entId = enterpriseId;
+                        sdkStateService.wfAppId = wfAppId;
+                        sdkStateService.wfOrgId = wfOrgId;
+                        sdkStateService.profileConfig = jsMetadata === null || jsMetadata === void 0 ? void 0 : jsMetadata.profile;
+                        sdkStateService.persistState(generateUUID());
+                    }
                     return [2];
             }
         });
@@ -7193,7 +7382,6 @@ function fetchAndSetEnterpriseId(traceId) {
                     if (isSelfHosted) {
                         return [2, ""];
                     }
-                    enterpriseId = "";
                     return [4, fetchObserverMetadata(traceId)];
                 case 1:
                     jsMetadataResponse = _a.sent();
