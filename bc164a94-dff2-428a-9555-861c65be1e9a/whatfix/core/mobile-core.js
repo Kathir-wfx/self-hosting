@@ -2464,6 +2464,8 @@ function findMatches(filteredHierarchy, identifiers, traceId) {
           properties: {
             ...ObserverData,
             activity_name: "false",
+            pageActivityNames: filteredHierarchy?.activity_name,
+            activityName: identifier?.activityName
           },
           level: ObserverLogLevel.DEBUG,
         }, traceId);
@@ -2475,6 +2477,8 @@ function findMatches(filteredHierarchy, identifiers, traceId) {
           properties: {
             ...ObserverData,
             controller: "false",
+            pageControllers: filteredHierarchy?.controller,
+            controller: identifier?.controller
           },
           level: ObserverLogLevel.DEBUG,
         }, traceId);
@@ -2580,6 +2584,8 @@ function findMatches(filteredHierarchy, identifiers, traceId) {
             event_name: OBSERVER_EVENTS.FINDER.IDENTIFIER_NOT_MATCHED,
             properties: {
               ...ObserverData,
+              node,
+              identifier
             },
             level: ObserverLogLevel.DEBUG,
           }, traceId);
@@ -2625,6 +2631,8 @@ function findMatches(filteredHierarchy, identifiers, traceId) {
           properties: {
             ...ObserverData,
             activity_name: "false",
+            pageActivityNames: flattenedHierarchy.ROOT_NODE?.activity_name,
+            activityName: identifier?.activityName
           },
           level: ObserverLogLevel.DEBUG,
         }, traceId);
@@ -2636,6 +2644,8 @@ function findMatches(filteredHierarchy, identifiers, traceId) {
           properties: {
             ...ObserverData,
             controller: "false",
+            pageControllers: flattenedHierarchy.ROOT_NODE?.controller,
+            controller: identifier?.controller
           },
           level: ObserverLogLevel.DEBUG,
         }, traceId);
@@ -2750,6 +2760,8 @@ function findMatches(filteredHierarchy, identifiers, traceId) {
             event_name: OBSERVER_EVENTS.FINDER.IDENTIFIER_NOT_MATCHED,
             properties: {
               ...ObserverData,
+              actualNode,
+              target
             },
             level: ObserverLogLevel.DEBUG,
           }, traceId);
